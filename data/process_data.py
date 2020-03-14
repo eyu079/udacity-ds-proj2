@@ -1,16 +1,62 @@
 import sys
-
+import pandas as pd
+import numpy as np
+from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
-    pass
+    # load messages dataset
+    messages = pd.read_csv(messages_filepath)
+    messages.head()
 
+    # load categories dataset
+    categories = pd.read_csv(categories_filepath)
+    categories.head()
+
+    # merge datasets
+    df = messages.merge(categories, on=['id'])
+    df.head()
+
+    categories = categories['categories'].str.split(";",expand=True);
+
+    # select the first row of the categories dataframe
+    row = list(categories.iloc[0])
+
+    # use this row to extract a list of new column names for categories.
+    # one way is to apply a lambda function that takes everything 
+    # up to the second to last character of each string with slicing
+    category_colnames = list(map(lambda name: name[:-2],row))
+
+    # rename the columns of `categories`
+    categories.columns = category_colnames
+
+    for column in categories:
+        # set each value to be the last character of the string
+        categories[column] = categories[column].str[-1:];
+        
+        # convert column from string to numeric
+        categories[column] = pd.to_numeric(categories[column],errors = 'ignore');
+
+    # drop the original categories column from `df`
+    df = df.drop('categories',axis = 1)
+
+    # concatenate the original dataframe with the new `categories` dataframe
+
+    df = pd.concat([df, categories], axis = 1)
+
+    return df
 
 def clean_data(df):
-    pass
+    # check number of duplicates
+    unique_entries = df['id'].nunique()
 
+    # drop duplicates
+    df.drop_duplicates(subset ="id", keep = False, inplace = True)
+
+    return df
 
 def save_data(df, database_filename):
-    pass  
+    engine = create_engine('sqlite:///EstherDatabaseName.db')
+    df.to_sql('DisasterTable', engine, index=False)  
 
 
 def main():
