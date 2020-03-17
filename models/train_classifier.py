@@ -1,21 +1,58 @@
 import sys
 
+import pandas as pd
+from sqlalchemy import create_engine
+import nltk
+nltk.download(['punkt', 'wordnet'])
+
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
+
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+
+from sklearn.metrics import classification_report
 
 def load_data(database_filepath):
-    pass
+    engine = create_engine('sqlite:///EstherDatabaseName.db')
+    df = pd.read_sql_table("DisasterTable",engine)
+    X = df.message.values
+    y = df.iloc[:, 4:].values
+    categories = [str(category_name) for category_name in df.iloc[0, 4:].index]
 
+    return X, y, categories
 
 def tokenize(text):
-    pass
+    tokens = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+    clean_tokens = []
+    
+    
+    for tok in tokens:
+        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+        clean_tokens.append(clean_tok)
+        
+    return clean_tokens
 
 
 def build_model():
-    pass
-
+    pipeline = Pipeline([
+    ('vect', CountVectorizer(tokenizer=tokenize)),
+    ('tfidf', TfidfTransformer()),
+    ('classifier', MultiOutputClassifier(KNeighborsClassifier())),
+    ])
+        
+    return pipeline
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
-
+    y_pred=model.predict(X_test)
+    print(classification_report(y_test, y_pred, target_names=category_names))
+    results = pd.DataFrame(columns=['Category', 'f_score', 'precision', 'recall'])
 
 def save_model(model, model_filepath):
     pass
