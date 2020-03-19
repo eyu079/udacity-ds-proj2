@@ -38,6 +38,7 @@ def load_data(messages_filepath, categories_filepath):
 
     # drop the original categories column from `df`
     df = df.drop('categories',axis = 1)
+   
 
     # concatenate the original dataframe with the new `categories` dataframe
 

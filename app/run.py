@@ -1,6 +1,9 @@
 import json
 import plotly
 import pandas as pd
+import numpy as np
+import sqlite3
+from sqlalchemy import create_engine
 
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
@@ -11,7 +14,8 @@ from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
-
+import os
+import pickle
 app = Flask(__name__)
 
 def tokenize(text):
@@ -26,11 +30,11 @@ def tokenize(text):
     return clean_tokens
 
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///EstherDatabaseName.db')
+df = pd.read_sql_table('DisasterTable', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("./models/classifier.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -43,6 +47,19 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
     
+    #Additional visual to show percentage (%) of each category relative to all messages
+    category = df.iloc[:,4:]
+    category_counts = []
+    for column_name in category:
+        category_counts.append(np.sum(df[column_name]))
+
+    tot_entry = sum(category_counts)
+
+    perct = []
+
+    perct.append((category_counts/tot_entry)*100)
+
+
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
@@ -56,6 +73,24 @@ def index():
 
             'layout': {
                 'title': 'Distribution of Message Genres',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Genre"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=category,
+                    y=perct
+                )
+            ],
+
+            'layout': {
+                'title': 'Percentage (%) of Category of Messages',
                 'yaxis': {
                     'title': "Count"
                 },
